@@ -1,4 +1,10 @@
 import { requestUrl } from "obsidian";
+import {
+  buildCopyEditSystemPrompt,
+  buildCopyEditUserPrompt,
+  chooseCopyEditResult,
+  type CopyEditContext,
+} from "./copyEdit";
 
 export interface VoiceRecorder {
   stop: () => Promise<Blob>;
@@ -99,11 +105,6 @@ export async function transcribeWhisper(audio: Blob, apiKey: string): Promise<st
   return (json.text || "").trim();
 }
 
-export interface CopyEditContext {
-  acronyms: string;
-  programName?: string;
-}
-
 export async function copyEdit(
   text: string,
   apiKey: string,
@@ -128,7 +129,7 @@ export async function copyEdit(
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
       system,
-      messages: [{ role: "user", content: trimmed }],
+      messages: [{ role: "user", content: buildCopyEditUserPrompt(trimmed) }],
     }),
     throw: false,
   });
@@ -140,27 +141,7 @@ export async function copyEdit(
     content?: Array<{ type: string; text?: string }>;
   };
   const textBlock = (json.content || []).find((b) => b.type === "text");
-  return (textBlock?.text || trimmed).trim();
-}
-
-function buildCopyEditSystemPrompt(ctx: CopyEditContext): string {
-  const acronyms = ctx.acronyms.trim();
-  const programName = (ctx.programName || "").trim();
-  return [
-    "You copy-edit short program update notes captured by a community college dean.",
-    programName ? `The selected program is ${programName}.` : "",
-    "Rules:",
-    "- Remove filler words (um, uh, like, you know).",
-    "- Fix grammar, punctuation, and obvious word-choice mistakes for clarity.",
-    "- Keep the tone concise, clear, and suitable for an internal program update log.",
-    "- Preserve all acronyms and proper nouns from the list below exactly as they appear.",
-    "- Do not paraphrase, summarize, expand, or add content the speaker did not say.",
-    "- Do not add headings, dates, bullets, labels, or tags.",
-    "- Return ONLY the cleaned text - no preamble, no quotes, no explanation.",
-    acronyms ? `Acronyms and proper nouns to preserve: ${acronyms}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return chooseCopyEditResult(trimmed, textBlock?.text || "");
 }
 
 interface MultipartField {
