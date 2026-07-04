@@ -1,29 +1,28 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import type ThoughtCapturePlugin from "../main";
-import type { Section } from "./types";
+import type ProgramUpdateCapturePlugin from "../main";
 
-export interface ThoughtCaptureSettings {
+export interface ProgramUpdateCaptureSettings {
   openaiApiKey: string;
   anthropicApiKey: string;
-  thoughtsFilePath: string;
+  programsFolderPath: string;
   showAnotherAfterSave: boolean;
-  lastUsedSection: Section;
+  lastUsedProgramPath: string;
   customAcronyms: string;
 }
 
-export const DEFAULT_SETTINGS: ThoughtCaptureSettings = {
+export const DEFAULT_SETTINGS: ProgramUpdateCaptureSettings = {
   openaiApiKey: "",
   anthropicApiKey: "",
-  thoughtsFilePath: "09 Thoughts/Thoughts.md",
+  programsFolderPath: "02 Programs",
   showAnotherAfterSave: true,
-  lastUsedSection: "Self-Improvement",
-  customAcronyms: "CalWORKs, VPSS, FJG",
+  lastUsedProgramPath: "",
+  customAcronyms: "A2MEND, BSSP, CalWORKs, COYA, EOPS, HACU, ISSP, LGBTQIA, SDCCE, VPSS, FJG",
 };
 
-export class ThoughtCaptureSettingTab extends PluginSettingTab {
-  plugin: ThoughtCapturePlugin;
+export class ProgramUpdateCaptureSettingTab extends PluginSettingTab {
+  plugin: ProgramUpdateCapturePlugin;
 
-  constructor(app: App, plugin: ThoughtCapturePlugin) {
+  constructor(app: App, plugin: ProgramUpdateCapturePlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -32,24 +31,24 @@ export class ThoughtCaptureSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Thought Capture" });
+    containerEl.createEl("h2", { text: "Program Update Capture" });
 
     new Setting(containerEl)
-      .setName("Thoughts file path")
-      .setDesc("Single master file for all captured thoughts (relative to vault root).")
+      .setName("Programs folder path")
+      .setDesc("Folder containing one subfolder per program, relative to the vault root.")
       .addText((t) =>
         t
-          .setPlaceholder("09 Thoughts/Thoughts.md")
-          .setValue(this.plugin.settings.thoughtsFilePath)
+          .setPlaceholder("02 Programs")
+          .setValue(this.plugin.settings.programsFolderPath)
           .onChange(async (v) => {
-            this.plugin.settings.thoughtsFilePath = v.trim() || DEFAULT_SETTINGS.thoughtsFilePath;
+            this.plugin.settings.programsFolderPath = v.trim() || DEFAULT_SETTINGS.programsFolderPath;
             await this.plugin.saveSettings();
           })
       );
 
     new Setting(containerEl)
       .setName("Show another after save")
-      .setDesc("After saving a thought, immediately reopen the capture modal.")
+      .setDesc("After saving an update, immediately reopen the capture modal.")
       .addToggle((t) =>
         t.setValue(this.plugin.settings.showAnotherAfterSave).onChange(async (v) => {
           this.plugin.settings.showAnotherAfterSave = v;
@@ -75,7 +74,7 @@ export class ThoughtCaptureSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Anthropic API key")
-      .setDesc("Used by Claude Haiku to copy-edit captures (clean grammar, preserve meaning). Optional — without it, the raw text is saved as-is.")
+      .setDesc("Used by Claude Haiku to copy-edit captures (clean grammar, preserve meaning). Optional - without it, the raw text is saved as-is.")
       .addText((t) => {
         t.inputEl.type = "password";
         t
@@ -92,7 +91,7 @@ export class ThoughtCaptureSettingTab extends PluginSettingTab {
       .setDesc("Comma-separated acronyms and proper nouns the copy-edit pass should preserve verbatim.")
       .addText((t) =>
         t
-          .setPlaceholder("CalWORKs, VPSS, FJG")
+          .setPlaceholder("BSSP, CalWORKs, ISSP, SDCCE, VPSS")
           .setValue(this.plugin.settings.customAcronyms)
           .onChange(async (v) => {
             this.plugin.settings.customAcronyms = v;

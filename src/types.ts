@@ -1,13 +1,9 @@
-export const SECTIONS = [
-  "Self-Improvement",
-  "Professional Insights",
-  "Teaching Insights",
-  "Health & Wellness",
-  "Other",
-] as const;
-export type Section = (typeof SECTIONS)[number];
+export interface ProgramFolder {
+  name: string;
+  path: string;
+}
 
-export interface ThoughtItem {
-  section: Section;
+export interface ProgramUpdateItem {
+  program: ProgramFolder;
   text: string;
 }

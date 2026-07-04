@@ -1,18 +1,19 @@
 import { App, ButtonComponent, Modal, Notice, Setting } from "obsidian";
-import { appendThought } from "./append";
+import { appendProgramUpdate } from "./append";
+import { listProgramFolders } from "./programs";
 import {
   copyEdit,
   startRecording,
   transcribeWhisper,
   type VoiceRecorder,
 } from "./transcribe";
-import { SECTIONS } from "./types";
-import type { Section } from "./types";
-import type ThoughtCapturePlugin from "../main";
+import type { ProgramFolder } from "./types";
+import type ProgramUpdateCapturePlugin from "../main";
 
 export class CaptureModal extends Modal {
-  private plugin: ThoughtCapturePlugin;
-  private section: Section = "Self-Improvement";
+  private plugin: ProgramUpdateCapturePlugin;
+  private programs: ProgramFolder[] = [];
+  private program: ProgramFolder | null = null;
   private text = "";
 
   private textArea: HTMLTextAreaElement | null = null;
@@ -21,7 +22,7 @@ export class CaptureModal extends Modal {
   private recording = false;
   private busy = false;
 
-  constructor(app: App, plugin: ThoughtCapturePlugin) {
+  constructor(app: App, plugin: ProgramUpdateCapturePlugin) {
     super(app);
     this.plugin = plugin;
   }
@@ -29,22 +30,34 @@ export class CaptureModal extends Modal {
   async onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: "Capture thought" });
+    contentEl.createEl("h2", { text: "Capture program update" });
 
-    const last = this.plugin.settings.lastUsedSection;
-    this.section = (SECTIONS as readonly string[]).includes(last) ? last : "Self-Improvement";
+    this.programs = listProgramFolders(
+      this.app,
+      this.plugin.settings.programsFolderPath
+    );
+    const last = this.plugin.settings.lastUsedProgramPath;
+    this.program =
+      this.programs.find((p) => p.path === last) || this.programs[0] || null;
 
-    new Setting(contentEl).setName("Section").addDropdown((d) => {
-      SECTIONS.forEach((s) => d.addOption(s, s));
-      d.setValue(this.section);
-      d.onChange((v) => {
-        this.section = v as Section;
+    const programSetting = new Setting(contentEl).setName("Program");
+    if (this.programs.length === 0) {
+      programSetting.setDesc(
+        `No program folders found in ${this.plugin.settings.programsFolderPath}.`
+      );
+    } else {
+      programSetting.addDropdown((d) => {
+        this.programs.forEach((p) => d.addOption(p.path, p.name));
+        if (this.program) d.setValue(this.program.path);
+        d.onChange((v) => {
+          this.program = this.programs.find((p) => p.path === v) || null;
+        });
       });
-    });
+    }
 
     new Setting(contentEl)
-      .setName("Thought")
-      .setDesc("Tap Record to dictate, or type below. Copy-edit runs automatically when both API keys are set; otherwise the raw text is saved as-is.")
+      .setName("Update")
+      .setDesc("Tap Record to dictate, or type below. Copy-edit runs automatically when the Anthropic API key is set; otherwise the raw text is saved as-is.")
       .addTextArea((t) => {
         this.textArea = t.inputEl;
         t.inputEl.rows = 4;
@@ -112,7 +125,10 @@ export class CaptureModal extends Modal {
         transcript = await copyEdit(
           transcript,
           this.plugin.settings.anthropicApiKey,
-          { acronyms: this.plugin.settings.customAcronyms }
+          {
+            acronyms: this.plugin.settings.customAcronyms,
+            programName: this.program?.name,
+          }
         );
       }
 
@@ -143,6 +159,10 @@ export class CaptureModal extends Modal {
       new Notice("Add some text before saving.");
       return;
     }
+    if (!this.program) {
+      new Notice("Choose a program before saving.");
+      return;
+    }
 
     let finalText = raw;
     if (this.plugin.settings.anthropicApiKey) {
@@ -150,7 +170,10 @@ export class CaptureModal extends Modal {
         finalText = await copyEdit(
           raw,
           this.plugin.settings.anthropicApiKey,
-          { acronyms: this.plugin.settings.customAcronyms }
+          {
+            acronyms: this.plugin.settings.customAcronyms,
+            programName: this.program.name,
+          }
         );
       } catch (e) {
         new Notice(`Copy-edit failed, saving raw text: ${e instanceof Error ? e.message : String(e)}`);
@@ -159,20 +182,19 @@ export class CaptureModal extends Modal {
     }
 
     try {
-      await appendThought(
+      await appendProgramUpdate(
         this.app,
-        this.plugin.settings.thoughtsFilePath,
-        { text: finalText, section: this.section }
+        { text: finalText, program: this.program }
       );
     } catch (e) {
       new Notice(`Save failed: ${e instanceof Error ? e.message : String(e)}`);
       return;
     }
 
-    this.plugin.settings.lastUsedSection = this.section;
+    this.plugin.settings.lastUsedProgramPath = this.program.path;
     await this.plugin.saveSettings();
 
-    new Notice(`Saved to ${this.section}.`);
+    new Notice(`Saved to ${this.program.name} Updates.`);
 
     const reopen = forceAnother || this.plugin.settings.showAnotherAfterSave;
     this.close();

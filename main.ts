@@ -1,28 +1,28 @@
 import { Plugin } from "obsidian";
 import {
-  ThoughtCaptureSettings,
-  ThoughtCaptureSettingTab,
+  ProgramUpdateCaptureSettings,
+  ProgramUpdateCaptureSettingTab,
   DEFAULT_SETTINGS,
 } from "./src/settings";
 import { CaptureModal } from "./src/CaptureModal";
 
-export default class ThoughtCapturePlugin extends Plugin {
-  settings: ThoughtCaptureSettings = DEFAULT_SETTINGS;
+export default class ProgramUpdateCapturePlugin extends Plugin {
+  settings: ProgramUpdateCaptureSettings = DEFAULT_SETTINGS;
 
   async onload() {
     await this.loadSettings();
 
-    this.addRibbonIcon("lightbulb", "Capture thought", () => {
+    this.addRibbonIcon("folder-plus", "Capture program update", () => {
       new CaptureModal(this.app, this).open();
     });
 
     this.addCommand({
       id: "capture",
-      name: "Capture thought",
+      name: "Capture program update",
       callback: () => new CaptureModal(this.app, this).open(),
     });
 
-    this.addSettingTab(new ThoughtCaptureSettingTab(this.app, this));
+    this.addSettingTab(new ProgramUpdateCaptureSettingTab(this.app, this));
   }
 
   async loadSettings() {

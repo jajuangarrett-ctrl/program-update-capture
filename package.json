@@ -1,14 +1,14 @@
 {
-  "name": "thought-capture",
-  "version": "0.2.0",
-  "description": "Quick voice/text capture of thoughts into a single sectioned master file in your Obsidian vault, with optional AI copy-edit.",
+  "name": "program-update-capture",
+  "version": "0.1.0",
+  "description": "Quick voice/text capture of program updates into per-program update files in your Obsidian vault, with optional AI copy-edit.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "test": "vitest run"
   },
-  "keywords": ["obsidian-plugin", "obsidian", "thoughts", "capture"],
+  "keywords": ["obsidian-plugin", "obsidian", "programs", "updates", "capture"],
   "author": "Franklin Garrett",
   "license": "MIT",
   "devDependencies": {

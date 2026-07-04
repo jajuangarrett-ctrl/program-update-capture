@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   buildSkeleton,
   formatDate,
-  insertAtTopOfSection,
-  renderBullet,
+  insertAtTopOfUpdates,
+  renderUpdate,
+  targetUpdateFilePath,
+  updateFileName,
 } from "./markdown";
-import type { ThoughtItem } from "./types";
+import type { ProgramUpdateItem } from "./types";
 
 const MAY_4 = new Date(2026, 4, 4);
 const MAY_3 = new Date(2026, 4, 3);
@@ -26,146 +28,130 @@ describe("formatDate", () => {
 });
 
 describe("buildSkeleton", () => {
-  it("creates a file with frontmatter and all five section headings", () => {
-    expect(buildSkeleton()).toBe(
-      "---\ntype: thoughts-master\n---\n\n" +
-        "## Self-Improvement\n\n" +
-        "## Professional Insights\n\n" +
-        "## Teaching Insights\n\n" +
-        "## Health & Wellness\n\n" +
-        "## Other\n"
+  it("creates a program update file with frontmatter and heading", () => {
+    expect(buildSkeleton("BSSP")).toBe(
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
+        "# BSSP Updates\n"
     );
   });
 });
 
-describe("renderBullet", () => {
+describe("program file paths", () => {
+  it("builds the expected update file name", () => {
+    expect(updateFileName("BSSP")).toBe("BSSP Updates.md");
+  });
+
+  it("builds the update path inside the selected program folder", () => {
+    expect(
+      targetUpdateFilePath({ name: "BSSP", path: "02 Programs/BSSP" })
+    ).toBe("02 Programs/BSSP/BSSP Updates.md");
+    expect(
+      targetUpdateFilePath({
+        name: "Student Support Services",
+        path: "/02 Programs/Student Support Services/",
+      })
+    ).toBe(
+      "02 Programs/Student Support Services/Student Support Services Updates.md"
+    );
+  });
+});
+
+describe("renderUpdate", () => {
   it("renders a bullet with the captured date and text", () => {
-    const item: ThoughtItem = { section: "Self-Improvement", text: "Read 30 min daily" };
-    expect(renderBullet(item, MAY_4)).toBe("- 5/4/26 — Read 30 min daily\n");
+    const item: ProgramUpdateItem = {
+      program: { name: "BSSP", path: "02 Programs/BSSP" },
+      text: "Prepared fall outreach plan",
+    };
+    expect(renderUpdate(item, MAY_4)).toBe(
+      "- 5/4/26 — Prepared fall outreach plan\n"
+    );
   });
 
   it("trims whitespace from the text", () => {
-    const item: ThoughtItem = { section: "Other", text: "  spacy thought  " };
-    expect(renderBullet(item, MAY_4)).toBe("- 5/4/26 — spacy thought\n");
+    const item: ProgramUpdateItem = {
+      program: { name: "BSSP", path: "02 Programs/BSSP" },
+      text: "  spacy update  ",
+    };
+    expect(renderUpdate(item, MAY_4)).toBe("- 5/4/26 — spacy update\n");
   });
 
-  it("indents multiline text so it stays inside one thought bullet", () => {
-    const item: ThoughtItem = {
-      section: "Other",
+  it("indents multiline text so it stays inside one update bullet", () => {
+    const item: ProgramUpdateItem = {
+      program: { name: "BSSP", path: "02 Programs/BSSP" },
       text: "Key takeaways\n- first\n\nplain follow-up",
     };
-    expect(renderBullet(item, MAY_4)).toBe(
+    expect(renderUpdate(item, MAY_4)).toBe(
       "- 5/4/26 — Key takeaways\n  - first\n\n  plain follow-up\n"
     );
   });
 });
 
-describe("insertAtTopOfSection", () => {
-  const bullet = "- 5/4/26 — new thought\n";
+describe("insertAtTopOfUpdates", () => {
+  const update = "- 5/4/26 — new update\n";
 
-  it("creates skeleton + bullet under the chosen section when file is empty", () => {
-    expect(insertAtTopOfSection("", "Self-Improvement", bullet)).toBe(
-      "---\ntype: thoughts-master\n---\n\n" +
-        "## Self-Improvement\n- 5/4/26 — new thought\n\n" +
-        "## Professional Insights\n\n" +
-        "## Teaching Insights\n\n" +
-        "## Health & Wellness\n\n" +
-        "## Other\n"
+  it("creates skeleton + update under the program heading when file is empty", () => {
+    expect(insertAtTopOfUpdates("", "BSSP", update)).toBe(
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
+        "# BSSP Updates\n- 5/4/26 — new update\n"
     );
   });
 
-  it("inserts at the TOP of the chosen section when section already has bullets", () => {
+  it("inserts at the top when the file already has updates", () => {
     const existing =
-      "---\ntype: thoughts-master\n---\n\n" +
-      "## Self-Improvement\n- 5/3/26 — earlier thought\n\n" +
-      "## Professional Insights\n\n" +
-      "## Teaching Insights\n\n" +
-      "## Health & Wellness\n\n" +
-      "## Other\n";
-    expect(insertAtTopOfSection(existing, "Self-Improvement", bullet)).toBe(
-      "---\ntype: thoughts-master\n---\n\n" +
-        "## Self-Improvement\n- 5/4/26 — new thought\n- 5/3/26 — earlier thought\n\n" +
-        "## Professional Insights\n\n" +
-        "## Teaching Insights\n\n" +
-        "## Health & Wellness\n\n" +
-        "## Other\n"
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
+      "# BSSP Updates\n- 5/3/26 — earlier update\n";
+    expect(insertAtTopOfUpdates(existing, "BSSP", update)).toBe(
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
+        "# BSSP Updates\n- 5/4/26 — new update\n- 5/3/26 — earlier update\n"
     );
   });
 
-  it("inserts under the correct section when multiple sections have content", () => {
+  it("preserves notes below the update list", () => {
     const existing =
-      "---\ntype: thoughts-master\n---\n\n" +
-      "## Self-Improvement\n- 5/3/26 — alpha\n\n" +
-      "## Professional Insights\n- 5/3/26 — beta\n\n" +
-      "## Teaching Insights\n\n" +
-      "## Health & Wellness\n\n" +
-      "## Other\n";
-    const out = insertAtTopOfSection(existing, "Professional Insights", bullet);
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
+      "# BSSP Updates\n- 5/3/26 — alpha\n\n## Parking Lot\n- keep this\n";
+    const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out).toContain(
-      "## Professional Insights\n- 5/4/26 — new thought\n- 5/3/26 — beta\n"
+      "# BSSP Updates\n- 5/4/26 — new update\n- 5/3/26 — alpha\n"
     );
-    expect(out).toContain("## Self-Improvement\n- 5/3/26 — alpha\n");
-  });
-
-  it("inserts into the Other section", () => {
-    const existing = buildSkeleton();
-    const out = insertAtTopOfSection(existing, "Other", bullet);
-    expect(out).toContain("## Other\n- 5/4/26 — new thought\n");
+    expect(out).toContain("## Parking Lot\n- keep this\n");
   });
 
   it("preserves unrelated frontmatter keys", () => {
     const existing =
-      "---\ntype: thoughts-master\nfoo: bar\n---\n\n" +
-      "## Self-Improvement\n\n## Professional Insights\n\n## Teaching Insights\n\n## Health & Wellness\n\n## Other\n";
-    const out = insertAtTopOfSection(existing, "Self-Improvement", bullet);
-    expect(out.startsWith("---\ntype: thoughts-master\nfoo: bar\n---\n")).toBe(true);
-    expect(out).toContain("## Self-Improvement\n- 5/4/26 — new thought\n");
+      "---\ntype: program-updates\nfoo: bar\n---\n\n" +
+      "# BSSP Updates\n";
+    const out = insertAtTopOfUpdates(existing, "BSSP", update);
+    expect(out.startsWith("---\ntype: program-updates\nfoo: bar\n---\n")).toBe(true);
+    expect(out).toContain("# BSSP Updates\n- 5/4/26 — new update\n");
   });
 
   it("adds canonical frontmatter if the file has none", () => {
-    const existing =
-      "## Self-Improvement\n\n## Professional Insights\n\n## Teaching Insights\n\n## Health & Wellness\n\n## Other\n";
-    const out = insertAtTopOfSection(existing, "Self-Improvement", bullet);
-    expect(out.startsWith("---\ntype: thoughts-master\n---\n")).toBe(true);
-    expect(out).toContain("## Self-Improvement\n- 5/4/26 — new thought\n");
+    const existing = "# BSSP Updates\n";
+    const out = insertAtTopOfUpdates(existing, "BSSP", update);
+    expect(out.startsWith("---\ntype: program-updates\nprogram: \"BSSP\"\n---\n")).toBe(true);
+    expect(out).toContain("# BSSP Updates\n- 5/4/26 — new update\n");
   });
 
-  it("appends a missing section at the end if it doesn't exist yet", () => {
+  it("adds the program heading if it is missing", () => {
     const existing =
-      "---\ntype: thoughts-master\n---\n\n" +
-      "## Self-Improvement\n- 5/3/26 — alpha\n";
-    const out = insertAtTopOfSection(existing, "Other", bullet);
-    expect(out).toContain("## Self-Improvement\n- 5/3/26 — alpha\n");
-    expect(out).toContain("## Other\n- 5/4/26 — new thought\n");
-  });
-
-  it("does NOT alter sibling sections' content order", () => {
-    const existing =
-      "---\ntype: thoughts-master\n---\n\n" +
-      "## Self-Improvement\n- 5/3/26 — alpha\n- 5/2/26 — older\n\n" +
-      "## Professional Insights\n\n## Teaching Insights\n\n## Health & Wellness\n\n## Other\n";
-    const out = insertAtTopOfSection(existing, "Professional Insights", bullet);
-    expect(out).toContain("- 5/3/26 — alpha\n- 5/2/26 — older\n");
-  });
-
-  it("inserts into the Teaching Insights section", () => {
-    const existing = buildSkeleton();
-    const out = insertAtTopOfSection(existing, "Teaching Insights", bullet);
-    expect(out).toContain("## Teaching Insights\n- 5/4/26 — new thought\n");
-  });
-
-  it("normalizes legacy duplicate frontmatter and glued section headings", () => {
-    const existing =
-      "---\ntype: thoughts-master\n---\r\n\r\n" +
-      "---\r\ntype: thoughts-master\r\n---\r\n\r\n" +
-      "## Other- 6/26/26 — glued thought\r\n\r\n" +
-      "## Other\r\n- 6/30/26 — later thought\r\n";
-    const out = insertAtTopOfSection(existing, "Other", bullet);
-    expect(out.match(/type: thoughts-master/g)).toHaveLength(1);
-    expect(out.match(/^## Other$/gm)).toHaveLength(1);
-    expect(out).not.toContain("## Other-");
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
+      "Loose note\n";
+    const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out).toContain(
-      "## Other\n- 5/4/26 — new thought\n- 6/26/26 — glued thought\n\n- 6/30/26 — later thought\n"
+      "# BSSP Updates\n- 5/4/26 — new update\nLoose note\n"
+    );
+  });
+
+  it("normalizes duplicate program update frontmatter", () => {
+    const existing =
+      "---\ntype: program-updates\nprogram: \"BSSP\"\n---\r\n\r\n" +
+      "---\r\ntype: program-updates\r\nprogram: \"BSSP\"\r\n---\r\n\r\n" +
+      "# BSSP Updates\r\n- 6/30/26 — later update\r\n";
+    const out = insertAtTopOfUpdates(existing, "BSSP", update);
+    expect(out.match(/type: program-updates/g)).toHaveLength(1);
+    expect(out).toContain(
+      "# BSSP Updates\n- 5/4/26 — new update\n- 6/30/26 — later update\n"
     );
   });
 });

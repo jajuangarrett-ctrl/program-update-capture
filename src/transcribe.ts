@@ -69,7 +69,7 @@ export async function transcribeWhisper(audio: Blob, apiKey: string): Promise<st
 
   const filename = filenameForBlob(audio);
   const audioBuf = new Uint8Array(await audio.arrayBuffer());
-  const boundary = `----thought-capture-${Math.random().toString(16).slice(2)}`;
+  const boundary = `----program-update-capture-${Math.random().toString(16).slice(2)}`;
   const body = buildMultipart(boundary, [
     {
       name: "file",
@@ -101,6 +101,7 @@ export async function transcribeWhisper(audio: Blob, apiKey: string): Promise<st
 
 export interface CopyEditContext {
   acronyms: string;
+  programName?: string;
 }
 
 export async function copyEdit(
@@ -144,16 +145,18 @@ export async function copyEdit(
 
 function buildCopyEditSystemPrompt(ctx: CopyEditContext): string {
   const acronyms = ctx.acronyms.trim();
+  const programName = (ctx.programName || "").trim();
   return [
-    "You copy-edit short personal notes a manager has captured as fleeting thoughts.",
-    "The notes fall into one of four buckets: self-improvement, professional insights, health & wellness, or other. The user has already chosen the bucket — do not classify or label.",
+    "You copy-edit short program update notes captured by a community college dean.",
+    programName ? `The selected program is ${programName}.` : "",
     "Rules:",
     "- Remove filler words (um, uh, like, you know).",
     "- Fix grammar, punctuation, and obvious word-choice mistakes for clarity.",
-    "- Keep the tone conversational and first-person — these are personal notes, not polished writing.",
+    "- Keep the tone concise, clear, and suitable for an internal program update log.",
     "- Preserve all acronyms and proper nouns from the list below exactly as they appear.",
     "- Do not paraphrase, summarize, expand, or add content the speaker did not say.",
-    "- Return ONLY the cleaned text — no preamble, no quotes, no explanation, no heading.",
+    "- Do not add headings, dates, bullets, labels, or tags.",
+    "- Return ONLY the cleaned text - no preamble, no quotes, no explanation.",
     acronyms ? `Acronyms and proper nouns to preserve: ${acronyms}` : "",
   ]
     .filter(Boolean)
