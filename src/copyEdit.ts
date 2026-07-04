@@ -43,7 +43,7 @@ export function chooseCopyEditResult(original: string, edited: string): string {
 }
 
 export function looksLikeAssistantMetaResponse(text: string): boolean {
-  const normalized = text.toLowerCase().replace(/[’]/g, "'");
+  const normalized = text.toLowerCase().replace(/\u2019/g, "'");
   const patterns = [
     "i'm ready to help",
     "i am ready to help",
@@ -62,7 +62,7 @@ function stripSurroundingQuotes(text: string): string {
   const pairs: Array<[string, string]> = [
     ['"', '"'],
     ["'", "'"],
-    ["“", "”"],
+    ["\u201c", "\u201d"],
   ];
   for (const [open, close] of pairs) {
     if (text.startsWith(open) && text.endsWith(close) && text.length > 1) {
