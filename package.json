@@ -1,6 +1,6 @@
 {
   "name": "program-update-capture",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Quick voice/text capture of program updates into per-program update files in your Obsidian vault, with optional AI copy-edit.",
   "main": "main.js",
   "scripts": {

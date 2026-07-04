@@ -6,6 +6,7 @@ export interface ProgramUpdateCaptureSettings {
   anthropicApiKey: string;
   programsFolderPath: string;
   showAnotherAfterSave: boolean;
+  openUpdatedFileAfterSave: boolean;
   lastUsedProgramPath: string;
   customAcronyms: string;
 }
@@ -15,6 +16,7 @@ export const DEFAULT_SETTINGS: ProgramUpdateCaptureSettings = {
   anthropicApiKey: "",
   programsFolderPath: "02 Programs",
   showAnotherAfterSave: true,
+  openUpdatedFileAfterSave: true,
   lastUsedProgramPath: "",
   customAcronyms: "A2MEND, BSSP, CalWORKs, COYA, EOPS, HACU, ISSP, LGBTQIA, SDCCE, VPSS, FJG",
 };
@@ -52,6 +54,16 @@ export class ProgramUpdateCaptureSettingTab extends PluginSettingTab {
       .addToggle((t) =>
         t.setValue(this.plugin.settings.showAnotherAfterSave).onChange(async (v) => {
           this.plugin.settings.showAnotherAfterSave = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("Open updated file after save")
+      .setDesc("After saving an update, open the exact program update file that was changed.")
+      .addToggle((t) =>
+        t.setValue(this.plugin.settings.openUpdatedFileAfterSave).onChange(async (v) => {
+          this.plugin.settings.openUpdatedFileAfterSave = v;
           await this.plugin.saveSettings();
         })
       );

@@ -1,4 +1,4 @@
-import { App, ButtonComponent, Modal, Notice, Setting } from "obsidian";
+import { App, ButtonComponent, Modal, Notice, Setting, TFile } from "obsidian";
 import { appendProgramUpdate } from "./append";
 import { listProgramFolders } from "./programs";
 import {
@@ -181,8 +181,9 @@ export class CaptureModal extends Modal {
       }
     }
 
+    let savedPath: string;
     try {
-      await appendProgramUpdate(
+      savedPath = await appendProgramUpdate(
         this.app,
         { text: finalText, program: this.program }
       );
@@ -194,13 +195,22 @@ export class CaptureModal extends Modal {
     this.plugin.settings.lastUsedProgramPath = this.program.path;
     await this.plugin.saveSettings();
 
-    new Notice(`Saved to ${this.program.name} Updates.`);
+    new Notice(`Saved to ${savedPath}.`);
 
     const reopen = forceAnother || this.plugin.settings.showAnotherAfterSave;
     this.close();
+    if (this.plugin.settings.openUpdatedFileAfterSave) {
+      await this.openSavedUpdateFile(savedPath);
+    }
     if (reopen) {
       setTimeout(() => new CaptureModal(this.app, this.plugin).open(), 200);
     }
+  }
+
+  private async openSavedUpdateFile(path: string): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) return;
+    await this.app.workspace.getLeaf(false).openFile(file);
   }
 
   onClose() {
