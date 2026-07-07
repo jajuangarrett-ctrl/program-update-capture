@@ -22,6 +22,10 @@ export default class ProgramUpdateCapturePlugin extends Plugin {
       callback: () => new CaptureModal(this.app, this).open(),
     });
 
+    this.registerObsidianProtocolHandler("program-update-capture", () => {
+      new CaptureModal(this.app, this).open();
+    });
+
     this.addSettingTab(new ProgramUpdateCaptureSettingTab(this.app, this));
   }
 
