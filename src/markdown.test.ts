@@ -1,31 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   buildSkeleton,
-  formatDate,
   insertAtTopOfUpdates,
   renderUpdate,
   targetUpdateFilePath,
   updateFileName,
 } from "./markdown";
 import type { ProgramUpdateItem } from "./types";
-
-const MAY_4 = new Date(2026, 4, 4);
-const MAY_3 = new Date(2026, 4, 3);
-const JAN_1 = new Date(2026, 0, 1);
-const DEC_31 = new Date(2099, 11, 31);
-
-describe("formatDate", () => {
-  it("formats as M/D/YY with no leading zeros and 2-digit year", () => {
-    expect(formatDate(MAY_4)).toBe("5/4/26");
-    expect(formatDate(MAY_3)).toBe("5/3/26");
-    expect(formatDate(JAN_1)).toBe("1/1/26");
-    expect(formatDate(DEC_31)).toBe("12/31/99");
-  });
-
-  it("zero-pads year for years < 2010", () => {
-    expect(formatDate(new Date(2003, 6, 9))).toBe("7/9/03");
-  });
-});
 
 describe("buildSkeleton", () => {
   it("creates a program update file with frontmatter and heading", () => {
@@ -57,14 +38,12 @@ describe("program file paths", () => {
 });
 
 describe("renderUpdate", () => {
-  it("renders a bullet with the captured date and text", () => {
+  it("renders a date-free running-list bullet", () => {
     const item: ProgramUpdateItem = {
       program: { name: "BSSP", path: "02 Programs/BSSP" },
       text: "Prepared fall outreach plan",
     };
-    expect(renderUpdate(item, MAY_4)).toBe(
-      "- 5/4/26 — Prepared fall outreach plan\n"
-    );
+    expect(renderUpdate(item)).toBe("- Prepared fall outreach plan\n");
   });
 
   it("trims whitespace from the text", () => {
@@ -72,7 +51,7 @@ describe("renderUpdate", () => {
       program: { name: "BSSP", path: "02 Programs/BSSP" },
       text: "  spacy update  ",
     };
-    expect(renderUpdate(item, MAY_4)).toBe("- 5/4/26 — spacy update\n");
+    expect(renderUpdate(item)).toBe("- spacy update\n");
   });
 
   it("indents multiline text so it stays inside one update bullet", () => {
@@ -80,19 +59,19 @@ describe("renderUpdate", () => {
       program: { name: "BSSP", path: "02 Programs/BSSP" },
       text: "Key takeaways\n- first\n\nplain follow-up",
     };
-    expect(renderUpdate(item, MAY_4)).toBe(
-      "- 5/4/26 — Key takeaways\n  - first\n\n  plain follow-up\n"
+    expect(renderUpdate(item)).toBe(
+      "- Key takeaways\n  - first\n\n  plain follow-up\n"
     );
   });
 });
 
 describe("insertAtTopOfUpdates", () => {
-  const update = "- 5/4/26 — new update\n";
+  const update = "- new update\n";
 
   it("creates skeleton + update under the program heading when file is empty", () => {
     expect(insertAtTopOfUpdates("", "BSSP", update)).toBe(
       "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
-        "# BSSP Updates\n- 5/4/26 — new update\n"
+        "# BSSP Updates\n- new update\n"
     );
   });
 
@@ -102,7 +81,7 @@ describe("insertAtTopOfUpdates", () => {
       "# BSSP Updates\n- 5/3/26 — earlier update\n";
     expect(insertAtTopOfUpdates(existing, "BSSP", update)).toBe(
       "---\ntype: program-updates\nprogram: \"BSSP\"\n---\n\n" +
-        "# BSSP Updates\n- 5/4/26 — new update\n- 5/3/26 — earlier update\n"
+        "# BSSP Updates\n- new update\n- earlier update\n"
     );
   });
 
@@ -112,7 +91,7 @@ describe("insertAtTopOfUpdates", () => {
       "# BSSP Updates\n- 5/3/26 — alpha\n\n## Parking Lot\n- keep this\n";
     const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out).toContain(
-      "# BSSP Updates\n- 5/4/26 — new update\n- 5/3/26 — alpha\n"
+      "# BSSP Updates\n- new update\n- alpha\n"
     );
     expect(out).toContain("## Parking Lot\n- keep this\n");
   });
@@ -123,14 +102,14 @@ describe("insertAtTopOfUpdates", () => {
       "# BSSP Updates\n";
     const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out.startsWith("---\ntype: program-updates\nfoo: bar\n---\n")).toBe(true);
-    expect(out).toContain("# BSSP Updates\n- 5/4/26 — new update\n");
+    expect(out).toContain("# BSSP Updates\n- new update\n");
   });
 
   it("adds canonical frontmatter if the file has none", () => {
     const existing = "# BSSP Updates\n";
     const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out.startsWith("---\ntype: program-updates\nprogram: \"BSSP\"\n---\n")).toBe(true);
-    expect(out).toContain("# BSSP Updates\n- 5/4/26 — new update\n");
+    expect(out).toContain("# BSSP Updates\n- new update\n");
   });
 
   it("adds the program heading if it is missing", () => {
@@ -139,7 +118,7 @@ describe("insertAtTopOfUpdates", () => {
       "Loose note\n";
     const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out).toContain(
-      "# BSSP Updates\n- 5/4/26 — new update\nLoose note\n"
+      "# BSSP Updates\n- new update\nLoose note\n"
     );
   });
 
@@ -151,7 +130,7 @@ describe("insertAtTopOfUpdates", () => {
     const out = insertAtTopOfUpdates(existing, "BSSP", update);
     expect(out.match(/type: program-updates/g)).toHaveLength(1);
     expect(out).toContain(
-      "# BSSP Updates\n- 5/4/26 — new update\n- 6/30/26 — later update\n"
+      "# BSSP Updates\n- new update\n- later update\n"
     );
   });
 });

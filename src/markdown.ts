@@ -2,13 +2,6 @@ import type { ProgramFolder, ProgramUpdateItem } from "./types";
 
 const FRONTMATTER_TYPE = "program-updates";
 
-export function formatDate(d: Date): string {
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  const yy = d.getFullYear() % 100;
-  return `${m}/${day}/${yy.toString().padStart(2, "0")}`;
-}
-
 export function updateFileName(programName: string): string {
   return `${programName} Updates.md`;
 }
@@ -23,8 +16,8 @@ export function buildSkeleton(programName: string): string {
   return `${buildFrontmatter(programName)}\n\n# ${programName} Updates\n`;
 }
 
-export function renderUpdate(item: ProgramUpdateItem, capturedAt: Date): string {
-  return `- ${formatDate(capturedAt)} — ${formatCapturedText(item.text)}\n`;
+export function renderUpdate(item: ProgramUpdateItem): string {
+  return `- ${formatCapturedText(item.text)}\n`;
 }
 
 export function insertAtTopOfUpdates(
@@ -52,7 +45,7 @@ function ensureProgramFile(content: string, programName: string): string {
   if (!normalized.trim()) return buildSkeleton(programName);
   const { frontmatter, body } = splitFrontmatter(normalized);
   const fmPart = frontmatter || `${buildFrontmatter(programName)}\n`;
-  let result = stripDuplicateProgramFrontmatter(body);
+  let result = stripLegacyUpdateDates(stripDuplicateProgramFrontmatter(body));
 
   if (!programHeadingRegex(programName).test(result)) {
     const existingBody = result.replace(/^\n+/, "");
@@ -81,6 +74,13 @@ function stripDuplicateProgramFrontmatter(body: string): string {
   return body.replace(
     /(?:^|\n)---\ntype: program-updates\n[\s\S]*?\n---\n*/g,
     "\n"
+  );
+}
+
+function stripLegacyUpdateDates(body: string): string {
+  return body.replace(
+    /^- \d{1,2}\/\d{1,2}\/\d{2} —[ \t]*/gm,
+    "- "
   );
 }
 

@@ -8,12 +8,11 @@ import type { ProgramUpdateItem } from "./types";
 
 export async function appendProgramUpdate(
   app: App,
-  item: ProgramUpdateItem,
-  capturedAt: Date = new Date()
+  item: ProgramUpdateItem
 ): Promise<string> {
   const path = normalizePath(targetUpdateFilePath(item.program));
   await ensureParentFolder(app, path);
-  const update = renderUpdate(item, capturedAt);
+  const update = renderUpdate(item);
   const file = app.vault.getAbstractFileByPath(path);
 
   if (file instanceof TFile) {
